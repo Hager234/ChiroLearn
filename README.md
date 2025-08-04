@@ -4,7 +4,8 @@ To run the GUI follow this path: CAP2/GUI/CAP2.exe
 
 The Gui looks like this:
 
-<img width="912" height="944" alt="image" src="https://github.com/user-attachments/assets/e5a14a2d-02db-46ba-b1b1-6982cf05eba3" />
+<img width="1613" height="1687" alt="image" src="https://github.com/user-attachments/assets/89f13954-4168-4653-b8b0-b35ba40b69b0" />
+
 It has several different Functions:
 
 Load Data:
