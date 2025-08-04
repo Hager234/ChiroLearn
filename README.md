@@ -1,7 +1,5 @@
 # ChiroLearn
-This is the Gitub page for the CAP2 GUI. The GUI can be downloaded here:
-To run the GUI follow this path: CAP2/GUI/CAP2.exe
-
+This is the Gitub page for the CAP2 GUI. 
 The Gui looks like this:
 
 <img width="1613" height="1687" alt="image" src="https://github.com/user-attachments/assets/89f13954-4168-4653-b8b0-b35ba40b69b0" />
