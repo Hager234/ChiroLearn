@@ -5,6 +5,7 @@ Developed as both a research and educational tool, ChiroLearn includes a graphic
 <img width="1613" height="1687" alt="image" src="https://github.com/user-attachments/assets/89f13954-4168-4653-b8b0-b35ba40b69b0" />
 To run the GUI, follow this path: GUI/GUI/GUI.exe
 https://kuacae-my.sharepoint.com/:f:/g/personal/hager_khalil_ku_ac_ae/Ejym6grChLpLkQ5yU2BpHMUBhNrDGYUeitQutcJEBvK71g?e=pahXku
+
 Load Data:
 
 With this button, the user can load a .fgt file, which contains the sensor data.
