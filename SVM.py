@@ -169,12 +169,11 @@ if __name__ == "__main__":
         corr_df = generate_pearson_correlation_table(x_train, y_train, best_classifier, custom_labels)
         plot_pearson_for_features_and_model(x_train, y_train, best_classifier, custom_labels)
 
-    # Save overall summary
     summary_df = pd.DataFrame(summary_data)
     summary_df.to_excel('svm_summary_fixedparams_gridsearch.xlsx', index=False)
     print("\nSummary of cross-validation results:")
     print(summary_df)
-    # Method 1: Permutation Importance
+    
 
 
 
@@ -238,50 +237,3 @@ if __name__ == "__main__":
     })
     print(importance_df)
 
-    # Averaged Columns
-    importance_df['Single_Avg'] = importance_df[['1F_ACC', '1F_MCC', '1F_F1']].mean(axis=1)
-    importance_df['Perm_Avg'] = importance_df[['Perm_ACC', 'Perm_MCC', 'Perm_F1']].mean(axis=1)
-
-    # --- Save to Excel
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = Path(f"feature_importances_UPDATED_{timestamp}.xlsx")
-    importance_df.to_excel(out_path, index=False, engine='openpyxl')
-    print(f"✔ Feature importances saved to {out_path.resolve()}")
-
-    # --- Normalize for Plotting ---
-    importance_df_norm = importance_df.copy()
-    for col in ['Perm_ACC', 'Perm_MCC', 'Perm_F1', '1F_ACC', '1F_MCC', '1F_F1']:
-        importance_df_norm[col] = importance_df_norm[col] / importance_df_norm[col].max()
-
-    importance_df_norm['Perm_Avg_Norm'] = importance_df_norm[['Perm_ACC', 'Perm_MCC', 'Perm_F1']].mean(axis=1)
-    importance_df_norm['1F_Avg_Norm'] = importance_df_norm[['1F_ACC', '1F_MCC', '1F_F1']].mean(axis=1)
-
-    # --- Plot Normalized Line for Multi vs Single Feature ---
-    plt.figure(figsize=(12, 6))
-    plt.plot(importance_df_norm['Feature'], importance_df_norm['1F_Avg_Norm'], marker='o',
-             label='Single Feature (Avg Norm)')
-    plt.plot(importance_df_norm['Feature'], importance_df_norm['Perm_Avg_Norm'], linestyle='--', color='orange',
-             marker='x', label='Multi Feature (Avg Norm)')
-
-    plt.xlabel('Feature')
-    plt.ylabel('Normalized Averaged Importance')
-    plt.title('Single vs Multi Feature Normalized Importance')
-    plt.xticks(rotation=45, ha='right')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-    # --- Optional: Raw Importance Plot ---
-    plt.figure(figsize=(12, 6))
-    plt.plot(importance_df['Feature'], importance_df['Single_Avg'], marker='o', label='Single Feature (Raw Avg)')
-    plt.plot(importance_df['Feature'], importance_df['Perm_Avg'], linestyle='--', color='orange', marker='x',
-             label='Multi Feature (Raw Avg)')
-    plt.xlabel('Feature')
-    plt.ylabel('Raw Averaged Importance')
-    plt.title('Single vs Multi Feature Raw Importance')
-    plt.xticks(rotation=45, ha='right')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
