@@ -2,7 +2,8 @@
 ChiroLearn is a machine learning-powered tool designed to evaluate and predict a chiropractor's level of experience based on force-time data collected during simulated spinal manipulation therapy (SMT) on a manikin. The system extracts key biomechanical features from SMT thrusts and leverages models like SVM, Random Forest, Gradient Boosting, XGBoost, and Bagging ensembles to classify practitioner experience levels with up to 95% accuracy.
 
 Developed as both a research and educational tool, ChiroLearn includes a graphical user interface (GUI) that allows users to:
-<img width="1613" height="1687" alt="image" src="https://github.com/user-attachments/assets/89f13954-4168-4653-b8b0-b35ba40b69b0" />
+<img width="1292" height="1671" alt="image" src="https://github.com/user-attachments/assets/66731229-9243-4546-9ef6-97bf214ceecf" />
+
 To run the GUI, follow this path: GUI/GUI/GUI.exe
 
 https://kuacae-my.sharepoint.com/:f:/g/personal/hager_khalil_ku_ac_ae/Ejym6grChLpLkQ5yU2BpHMUBhNrDGYUeitQutcJEBvK71g?e=pahXku
