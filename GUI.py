@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.pipeline import Pipeline
 from imblearn.combine import SMOTETomek
 import pickle
+from customtkinter import CTkLabel, CTkFont, CTkFrame
 from tkinter import filedialog
 from tkinter import filedialog
 import numpy as np
@@ -19,11 +20,16 @@ from pathlib import Path
 
 from PIL import Image
 model_features = [
-    'T0(s)', 'T1(s)', 'T1(N)', 'T2(s)', 'T2(N)', 'T3(s)', 'T3(N)', 'T4(s)', 'T4(N)',
-    'Thrust Duration(s)', 'Avg. Thrust Speed(N/s)', 'Max. Thrust Speed(N/s)',
-    'Preload Dosage(N*s)', 'Thrust Dosage(N*s)'
+    'T0[s]', 'T1[s]', 'T1[N]', 'T2[s]', 'T2[N]', 'T3[s]', 'T3[N]', 'T4[s]', 'T4[N]',
+    'Thrust Duration [s]', 'Avg. Thrust Speed [N/s]', 'Max. Thrust Speed [N/s]',
+    'Preload Dosage [N*s]', 'Thrust Dosage [N*s]'
 ]
 
+def is_row_match(row1, row2, tol=1e-2):
+    try:
+        return np.allclose(row1.astype(float), row2.astype(float), atol=tol)
+    except:
+        return row1.reset_index(drop=True).equals(row2.reset_index(drop=True))
 # class for the plotting frame
 class Frame_Plot(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -113,7 +119,7 @@ class Frame_Plot(ctk.CTkFrame):
         except:
             self.profile.filenumber = None
 
-        self.profile.metadata = load_metadata(profile.filenumber, profile.day)  # load metadata e.g years of experience
+        self.profile.metadata = load_metadata()  # load metadata e.g years of experience
         self.profile.A = import_data()  # import sensor data
 
         filename = os.path.basename(self.profile.file_path)
@@ -150,6 +156,8 @@ class Frame_Plot(ctk.CTkFrame):
         self.button_plot_data.configure(state='disabled')
         plot_data()
         plot_values()
+        # Try matching features to metadata to get actual experience
+        profile.metadata = load_metadata()
 
 
 # class for the main ctk app
@@ -214,18 +222,70 @@ class Frame_features(ctk.CTkFrame):
         super().__init__(master, **kwargs)
 
 
-# function that plots the table for the features
 def plot_values():
-    # Convert features dataframe to one-column-per-row format
+    # Remove any existing table frame
+    if hasattr(app, 'table_frame') and app.table_frame.winfo_exists():
+        app.table_frame.destroy()
+
+    app.table_frame = CTkFrame(master=app.Frame_Data, corner_radius=10)
+    app.table_frame.grid(row=1, column=0, padx=10, pady=(10, 20), sticky="nsew")  # place below plot
+
+    app.Frame_Data.grid_rowconfigure(0, weight=1)  # plot row
+    app.Frame_Data.grid_rowconfigure(1, weight=1)  # table row
+    app.Frame_Data.grid_columnconfigure(0, weight=1)
+
+    def format_feature(name):
+        sub_map = {
+            'T0': 'T' + '₀',
+            'T1': 'T' + '₁',
+            'T2': 'T' + '₂',
+            'T3': 'T' + '₃',
+            'T4': 'T' + '₄',
+        }
+        for k, v in sub_map.items():
+            name = name.replace(k, v)
+
+        # Use bold-looking bullet operator
+        name = name.replace('N*s', 'N∙s')  # ∙ is bolder than ⋅
+
+        return name
+
     data = profile.features.T.reset_index()
-    data.columns = ['Feature', 'Value']  # Rename columns
+    data.columns = ['Feature', 'Value']
+    data['Feature'] = data['Feature'].apply(format_feature)
 
-    # Convert to list of lists (with headers)
-    values = [data.columns.tolist()] + data.values.tolist()
+    # Fonts: italic font for whole label (only T is italic via unicode), normal for values
+    italic_font = CTkFont(family="Times New Roman", size=12, slant="italic")
+    normal_font = CTkFont(family="Arial", size=12)
 
-    # Create and display the table
-    table = CTkTable(master=app.Frame_Data, values=values)
-    table.grid()
+    # Header row
+    headers = ['Feature', 'Value']
+    for j, head in enumerate(headers):
+        label = CTkLabel(app.table_frame, text=head, font=normal_font,
+                         fg_color="#d9d9d9", corner_radius=4)
+        label.grid(row=0, column=j, padx=2, pady=2, sticky="nsew")
+
+    # Data rows with alternating colors
+    for i, (feature, value) in enumerate(zip(data['Feature'], data['Value']), start=1):
+        bg_color = "#f0f0f0" if i % 2 == 0 else "#e0e0e0"
+
+        f_label = CTkLabel(app.table_frame, text=str(feature), font=italic_font,
+                           fg_color=bg_color, corner_radius=2)
+        f_label.grid(row=i, column=0, padx=2, pady=2, sticky="nsew")
+
+        v_label = CTkLabel(app.table_frame, text=str(value), font=normal_font,
+                           fg_color=bg_color, corner_radius=2)
+        v_label.grid(row=i, column=1, padx=2, pady=2, sticky="nsew")
+
+    # Make columns and rows expandable
+    for col in range(2):
+        app.table_frame.grid_columnconfigure(col, weight=1)
+    for row in range(len(data) + 1):
+        app.table_frame.grid_rowconfigure(row, weight=1)
+
+
+
+
 
 
 def load_classifier(filename):
@@ -233,22 +293,52 @@ def load_classifier(filename):
         return joblib.load(f)
 
 
-def load_metadata(fn, day):
-    if fn is not None or day is not None:
-        # read data
-        data = pd.read_excel(f'/data/metadata.xls', header=None)
-        try:
-            selected_rows = data[(data.iloc[:, 0] == fn) & (data.iloc[:, 24] == eval(day))]
-            X = selected_rows.iloc[:, 18:23]
-            profile.experience = X.iloc[0, 0]
-            print(f'filenumber {fn}')
-        except:
+def normalize(val):
+    try:
+        return f"{float(val):.4f}"  # More decimal precision
+    except:
+        return str(val).replace('\xa0', ' ').strip().lower()
+
+def load_metadata():
+    try:
+        data = pd.read_excel('metadata.xls', header=None)
+
+        metadata_features = data.iloc[1:, 1:17].copy()
+        experience_column = data.iloc[1:, 18]  # experience is column 18 (index 17)
+
+        # Normalize all values for robust matching
+        metadata_features = metadata_features.applymap(normalize)
+        extracted_features = profile.features.iloc[0, :16].copy().apply(normalize)
+
+        matched_idx = None
+        for idx, row in metadata_features.iterrows():
+            if is_row_match(row.reset_index(drop=True), extracted_features.reset_index(drop=True)):
+                matched_idx = idx
+                break
+
+        if matched_idx is not None:
+            experience = experience_column.loc[matched_idx]
+            profile.experience = experience
+            print(f"Match found at row {matched_idx} with experience: {experience}")
+            print("Matched Metadata Row:")
+            print(data.iloc[matched_idx, :].to_list())  # +1 due to skipping header
+            return experience
+
+        else:
+            print("No match found.")
+            print("\n Extracted Features:")
+            print(extracted_features.to_list())
+            print("\n Comparing against metadata rows:")
+            for idx in metadata_features.index[:10]:  # Show first 10 rows
+                print(f"Row {idx}: {metadata_features.loc[idx].to_list()}")
             profile.experience = None
             return None
-        return X
-    else:
+
+    except Exception as e:
+        print(f"[load_metadata error]: {e}")
         profile.experience = None
         return None
+
 
 
 # import the sensor data from the fgt file
@@ -281,12 +371,10 @@ def extraInfo(timeT3, timeT2, data, indexT2, indexT3):
     return thrust_duration, avg_thrust_speed, max_thrust_speed
 
 
-# Define a function to plot data
 def plot_data():
-
-    full_feature_list = ['T0(s)', 'T0(N)', 'T1(s)', 'T1(N)', 'T2(s)', 'T2(N)', 'T3(s)', 'T3(N)',
-                         'T4(s)', 'T4(N)', 'Thrust Duration(s)', 'Avg. Thrust Speed(N/s)', 'Max. Thrust Speed(N/s)',
-                         'Preload Dosage(N*s)', 'Thrust Dosage(N*s)', 'Total Dosage(N*s)', 'DIP']
+    full_feature_list = ['T0[s]', 'T0[N]', 'T1[s]', 'T1[N]', 'T2[s]', 'T2[N]', 'T3[s]', 'T3[N]',
+                         'T4[s]', 'T4[N]', 'Thrust Duration [s]', 'Avg. Thrust Speed [N/s]', 'Max. Thrust Speed [N/s]',
+                         'Preload Dosage [N*s]', 'Thrust Dosage [N*s]', 'Total Dosage [N*s]', 'DIP']
 
     Force = profile.A['Force']
     Time = profile.A['Time']
@@ -302,7 +390,7 @@ def plot_data():
     # Call extraInfo to calculate additional values
     (thrust_duration, avg_thrust_speed, max_thrust_speed) = extraInfo(timeT3, timeT2, profile.A, indexT2, indexT3)
 
-    feature_list = [('T0(s)', 'T0(N)'), ('T1(s)', 'T1(N)'), ('T2(s)', 'T2(N)'), ('T3(s)', 'T3(N)'), ('T4(s)', 'T4(N)')]
+    feature_list = [('T0[s]', 'T0[N]'), ('T1[s]', 'T1[N]'), ('T2[s]', 'T2[N]'), ('T3[s]', 'T3[N]'), ('T4[s]', 'T4[N]')]
 
     profile.N = text
 
@@ -317,14 +405,19 @@ def plot_data():
 
     profile.features = pd.DataFrame([list(map(str, profile.M)) + [str(profile.N)]], columns=full_feature_list)
 
-
     for i, feature_tuple in enumerate(feature_list):
         # Extract the force value for the current feature from the DataFrame
         time = float(profile.features[feature_tuple[0]].values[0])
         force_value = float(profile.features[feature_tuple[1]].values[0])
-        plt.plot(time + timeT0 if i != 0 else timeT0, force_value, label='2D Data', marker='o', linestyle='-',
-                 color='red')
-        plt.text((time + timeT0 + 0.3) if i != 0 else (timeT0), force_value + 1, f'T{i}',
+
+        # Plot point
+        plt.plot(time + timeT0 if i != 0 else timeT0, force_value, label='2D Data', marker='o', linestyle='-', color='red')
+
+        # Generate subscript label (e.g., T₀, T₁, ...)
+        subscript = chr(0x2080 + i)  # Unicode subscript for 0-4
+        label_text = f'T{subscript}'
+
+        plt.text((time + timeT0 + 0.3) if i != 0 else timeT0, force_value + 1, label_text,
                  verticalalignment='bottom', horizontalalignment='right')
 
     canvas = FigureCanvasTkAgg(plt.gcf(), master=app.Frame_Data)
@@ -334,6 +427,17 @@ def plot_data():
 # calculate T0 to T4
 def findPoints(data):
     indexT0 = -1
+    # Force, time, and index of T3
+    indexT3 = int(data['Force'].idxmax())
+    forceT3 = data.loc[indexT3, 'Force']
+
+    indexT0 = -1
+    for f in range(indexT3):
+        interval = data.loc[f:indexT3 - 1, 'Force']
+        if (interval > 0).all():
+            indexT0 = f - 1
+            break
+
     # Force, time, and index of T3
     indexT3 = int(data['Force'].idxmax())
     forceT3 = data.loc[indexT3, 'Force']
